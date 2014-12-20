@@ -1,0 +1,40 @@
+---
+title: "PML-Assignment"
+output: html_document
+---
+
+In order to tackle this problem, I chose to go with a random forest model.
+I used some tutorial that I found on google, along with the randomForest library, which proved to be better than the naive random forest implementation of the caret package (which I still used for data partitioning and other ml-related operations).
+I also set the seed to a constant number, so calculations will always yield the same results.
+```{r}
+library(caret)
+library(randomForest)
+set.seed(8383)
+```
+
+First, looking at the training set, I figured that 160 variables are quite a lot and most of them don't make any sense to use as they're full of empty/NA values. Other fields that I decided not to use were ones that weren't correlated in any way to the 'classe' variable, such as the user_name field.
+I filtered the fields accordingly (and manually, using excel), and loaded both data sets into R.
+```{r}
+pml.training.filtered <- read.csv("C:/temp/PML/pml-training-filtered.csv")
+pml.testing.filtered <- read.csv("C:/temp/PML/pml-testing-filtered.csv")
+```
+
+I used the tuneRF function of the randomForest library in order to find the best value of mtry, which signifies how many covariates should be tested in each split of the tree.
+```{r}
+bestmtry <- tuneRF(pml.training.filtered[-1], pml.training.filtered$classe, ntreeTry = 100, stepFactor = 1.5, improve=0.01, trace=TRUE, plot=TRUE, dobest=FALSE)
+```
+
+As you can see, the value of mtry that yielded the minimum classification error was 15.
+Afterwards, all I had to do was train the model using the randomForest function and the mtry value that I found earlier (I arbitrarily chose 100 as the ntree value).
+```{r}
+rfModel <- randomForest(classe ~., data=pml.training.filtered, mtry=15, ntree=100, keep.forest=TRUE, importance=TRUE)
+rfModel
+```
+
+As you can see, the estimated error rate is 0.16% (not too bad). The randomForest model creates its own cross validation samples, whose results are shown in the confusion matrix above.
+These are the predictions I got using the random forest model:
+```{r}
+pred <- predict(rfModel, newdata=pml.testing.filtered)
+pred
+```
+
